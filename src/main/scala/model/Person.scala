@@ -1,7 +1,7 @@
 package model
 
-import db._
-import reactivemongo.bson.{BSONDocumentWriter, Macros}
+import reactivemongo.api.collections.bson.BSONCollection
+import reactivemongo.bson.BSONDocumentWriter
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -12,11 +12,13 @@ case class Person(name: String, age: Int)
 
 object Person {
 
-  implicit class PersonWritable(person: Person) extends MongoWritable[Person](peopleCollection) {
+  implicit class PersonWritable(person: Person)(implicit collection: Future[BSONCollection]) {
 
-    override implicit protected def personWriter: BSONDocumentWriter[Person] = Macros.writer[Person]
-
-    def write(implicit ec: ExecutionContext): Future[Boolean] = write(person)
+    def write(implicit writer: BSONDocumentWriter[Person], ec: ExecutionContext): Future[Boolean] = {
+      collection
+        .flatMap(_.insert(person).map(_ => true))
+        .recover { case _ => false }
+    }
   }
 
 }
