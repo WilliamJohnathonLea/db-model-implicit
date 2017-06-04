@@ -1,9 +1,10 @@
 package model
 
+import db._
 import reactivemongo.api.collections.bson.BSONCollection
-import reactivemongo.bson.BSONDocumentWriter
+import reactivemongo.bson.{BSONDocumentWriter, Macros}
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
 /**
   * Created by william on 03/06/17.
@@ -12,13 +13,9 @@ case class Person(name: String, age: Int)
 
 object Person {
 
-  implicit class PersonWritable(person: Person)(implicit collection: Future[BSONCollection]) {
+  implicit val writer: BSONDocumentWriter[Person] = Macros.writer[Person]
 
-    def write(implicit writer: BSONDocumentWriter[Person], ec: ExecutionContext): Future[Boolean] = {
-      collection
-        .flatMap(_.insert(person).map(_ => true))
-        .recover { case _ => false }
-    }
-  }
+  implicit class PersonWritable(val entity: Person)(implicit val collection: Future[BSONCollection])
+    extends Writable[Person]
 
 }
